@@ -1,0 +1,48 @@
+{
+  "name": "length-prefixed-json-stream",
+  "version": "0.0.0",
+  "description": "A length-prefixed JSON stream reader that accommodates whitespace padding",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && babel -s inline -D src -d dist",
+    "clean": "rimraf dist coverage .nyc_output",
+    "lint": "eslint src test",
+    "test": "cross-env NODE_ENV=test mocha --require babel-register",
+    "test:coverage": "cross-env NODE_ENV=test nyc mocha",
+    "test:watch": "chokidar src test mock --initial -c 'npm t'",
+    "preversion": "npm test && npm run lint",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/desertnet/length-prefixed-json-stream.git"
+  },
+  "keywords": [
+    "json",
+    "stream"
+  ],
+  "author": "Eric McCarthy <eric@limulus.net> (https://limulus.net/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/desertnet/length-prefixed-json-stream/issues"
+  },
+  "homepage": "https://github.com/desertnet/length-prefixed-json-stream#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-istanbul": "^4.1.5",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "chokidar-cli": "^1.2.0",
+    "cross-env": "^5.1.1",
+    "eslint": "^4.10.0",
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0",
+    "rimraf": "^2.6.2",
+    "sinon": "^4.1.1"
+  }
+}
