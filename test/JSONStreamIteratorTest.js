@@ -18,7 +18,7 @@ describe('JSONStreamIterator', function () {
     })
   })
 
-  describe('@@asyncIterator()', function () {
+  describe('[Symbol.asyncIterator]()', function () {
     it('should return `this`', function () {
       assert.strictEqual(iterator, iterator[Symbol.asyncIterator]())
     })
