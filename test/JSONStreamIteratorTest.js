@@ -141,6 +141,12 @@ describe('JSONStreamIterator', function () {
       assert.fail('Failed to throw')
     })
 
+    it('should end stream after multiple chunks of whitespace', async function () {
+      sendChunks(['4"hi" ', '    ', '   '])
+      await iterator.next()
+      assert.deepStrictEqual(await iterator.next(), {done:true})
+    })
+
     it('should continue to return {done:true} after stream end', async function () {
       sendChunks(['4"hi"'])
       await iterator.next()
