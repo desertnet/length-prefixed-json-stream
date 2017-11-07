@@ -1,1 +1,1 @@
-export {default as ResponseIterator} from './ResponseIterator'
+export {default as JSONStreamIterator} from './JSONStreamIterator'

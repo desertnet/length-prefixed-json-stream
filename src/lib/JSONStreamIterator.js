@@ -4,39 +4,50 @@ import isStream from 'is-stream'
 const whitespace = makeCharCodeLookupTable([' ', '\r', '\n', '\t'])
 const digits = makeCharCodeLookupTable('0 1 2 3 4 5 6 7 8 9'.split(/\s+/))
 
-export default class ResponseIterator {
+export default class JSONStreamIterator {
   constructor (inputStream) {
     if (!inputStream) {
-      throw new Error('Missing inputStream argument to ResponseIterator constructor')
+      throw new Error('Missing inputStream argument to JSONStreamIterator constructor')
     }
 
     if (!isStream.readable(inputStream)) {
-      throw new Error('Stream argument must be a Readable for ResponseIterator constructor')
+      throw new Error('Stream argument must be a Readable for JSONStreamIterator constructor')
     }
 
     this.position = 0
     this.buffer = Buffer.from('')
     this.input = new StreamPuller(inputStream)
+
+    this.finished = false
+    this.input.once('finish', () => this.finished = true)
   }
 
   // Async iterator protocol
   async next () {
-    await this._consumeToken(whitespace)
+    if (this.buffer === null) return { done: true }
+
+    const buf = await this._consumeToken(whitespace, true)
+    if (this.buffer === null) return { done: true }
+
     const size = Number.parseInt(await this._consumeToken(digits), 10)
     if (Number.isNaN(size)) throw new Error('Failed to parse response size')
     await this._consumeToken(whitespace)
 
     const response = await this._consumeString(size)
-    return JSON.parse(response)
+    return { done: false, value: JSON.parse(response) }
   }
 
-  async _consumeToken (codeTable) {
+  async _consumeToken (codeTable, allowedToEnd = false) {
     let tok = []
-    if (this.position === this.buffer.length) await this._updateBuffer()
+
+    if (this.position === this.buffer.length) await this._updateBuffer(allowedToEnd)
+    if (this.buffer === null) return
+
     while (codeTable[this.buffer[this.position]]) {
       tok.push(this.buffer[this.position])
       this.position += 1
-      if (this.position === this.buffer.length) await this._updateBuffer()
+      if (this.position === this.buffer.length) await this._updateBuffer(allowedToEnd)
+      if (this.buffer === null) return
     }
     return Buffer.from(tok).toString('utf8')
   }
@@ -57,9 +68,16 @@ export default class ResponseIterator {
     return result.toString('utf8')
   }
 
-  async _updateBuffer () {
+  async _updateBuffer (allowedToEnd = false) {
     this.position = 0
     this.buffer = await this.input.nextChunk()
+
+    if (this.buffer === null && allowedToEnd) {
+      return null
+    }
+    else if (this.buffer === null) {
+      throw new Error(`Unexpected end of stream`)
+    }
   }
 
   // Async iterator protocol
@@ -67,7 +85,7 @@ export default class ResponseIterator {
     this.input.destroy()
   }
 
-  async getNextResponse () {
+  async readValueFromStream () {
     const item = await this.next()
     if (item.done) return null
     return item.value
@@ -77,7 +95,7 @@ export default class ResponseIterator {
 /* istanbul ignore else */
 if (Symbol.asyncIterator) {
   // If there is support for async iterators in our env, support it.
-  ResponseIterator.prototype[Symbol.asyncIterator] = function () { return this }
+  JSONStreamIterator.prototype[Symbol.asyncIterator] = function () { return this }
 }
 
 function makeCharCodeLookupTable (chars) {

@@ -20,7 +20,7 @@ export default class StreamPuller extends Writable {
   }
 
   get _isReadyToResolveNextChunkPromise () {
-    return this._chunk && this._resolve && this._callback
+    return this._resolve && this._callback
   }
 
   get _isReadyToRejectNextChunkPromise () {
@@ -60,6 +60,12 @@ export default class StreamPuller extends Writable {
 
   _rejectAsSoonAsPossible (err) {
     this._err = err
+    this._attemptToSettleNextChunkPromise()
+  }
+
+  _final (cb) {
+    this._callback = cb
+    this._chunk = null
     this._attemptToSettleNextChunkPromise()
   }
 

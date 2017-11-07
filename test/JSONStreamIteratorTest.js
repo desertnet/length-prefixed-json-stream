@@ -1,20 +1,20 @@
 import assert from 'assert'
 import sinon from 'sinon'
-import {ResponseIterator} from '../src'
+import {JSONStreamIterator} from '../src'
 import {PassThrough} from 'stream'
 
-describe('ResponseIterator', function () {
+describe('JSONStreamIterator', function () {
   let responses, inputStream
 
   beforeEach(function () {
     inputStream = new PassThrough()
-    responses = new ResponseIterator(inputStream)
+    responses = new JSONStreamIterator(inputStream)
   })
 
   describe('constructor()', function () {
     it('should throw if not passed a stream', function () {
-      assert.throws(() => new ResponseIterator())
-      assert.throws(() => new ResponseIterator('foobar'))
+      assert.throws(() => new JSONStreamIterator())
+      assert.throws(() => new JSONStreamIterator('foobar'))
     })
   })
 
@@ -24,26 +24,26 @@ describe('ResponseIterator', function () {
     })
   })
 
-  describe('getNextResponse()', function () {
+  describe('readValueFromStream()', function () {
     it('should call .next()', async function () {
       const expectation = sinon
         .mock(responses)
         .expects('next')
         .once()
         .resolves({done:true})
-      await responses.getNextResponse()
+      await responses.readValueFromStream()
       expectation.verify()
     })
 
     it('should return the value from .next() if not done', async function () {
       sinon.stub(responses, 'next').resolves({ value: 'foo', done: false })
-      const result = await responses.getNextResponse()
+      const result = await responses.readValueFromStream()
       assert.strictEqual(result, 'foo')
     })
 
     it('should return null if .next() returns done', async function () {
       sinon.stub(responses, 'next').resolves({ done: true })
-      const result = await responses.getNextResponse()
+      const result = await responses.readValueFromStream()
       assert.strictEqual(result, null)
     })
   })
@@ -71,25 +71,29 @@ describe('ResponseIterator', function () {
     })
 
     it('should extract response objects from the input stream', async function () {
-      sendChunks(['   37{"done":false, "value":{"foo":"bar"}}13 {"done":true}'])
+      sendChunks(['   37{"quux":false, "quuxx":{"foo":"bar"}}13 {"quux":true}'])
       let response = await responses.next()
-      assert.deepStrictEqual(response, {"done":false, "value":{"foo":"bar"}})
+      assert.deepStrictEqual(response, {done: false, value: {quux: false, quuxx: {foo:"bar"} } })
       response = await responses.next()
-      assert.deepStrictEqual(response, {"done":true})
+      assert.deepStrictEqual(response, {done: false, value: {quux: true} })
+      response = await responses.next()
+      assert.deepStrictEqual(response, {done: true})
     })
 
     it('should handle many chunks', async function () {
-      sendChunks([' ', '  3', '7{"do', 'n', 'e":false, "value":{"foo":"bar"}}\n 13', '{"done":true}'])
+      sendChunks([' ', '  3', '7{"qu', 'u', 'x":false, "quuxx":{"foo":"bar"}}\n 13', '{"quux":true}'])
       let response = await responses.next()
-      assert.deepStrictEqual(response, {"done":false, "value":{"foo":"bar"}})
+      assert.deepStrictEqual(response, {done: false, value: {quux: false, quuxx: {foo:"bar"}}})
       response = await responses.next()
-      assert.deepStrictEqual(response, {"done":true})
+      assert.deepStrictEqual(response, {done: false, value: {quux: true}})
+      response = await responses.next()
+      assert.deepStrictEqual(response, {done: true})
     })
 
     it('should throw an error on malformed size value', async function () {
-      sendChunks(['14{"done":false}.13{"done":true}'])
+      sendChunks(['14{"quux":false}.13{"quux":true}'])
       let response = await responses.next()
-      assert.deepStrictEqual(response, {done:false})
+      assert.deepStrictEqual(response, {done: false, value: {quux:false}})
       try { response = await responses.next() }
       catch (err) {
         assert(err.message.match(/response size/))
@@ -107,6 +111,26 @@ describe('ResponseIterator', function () {
       }
       assert.fail('Failed to throw')
     })
+
+    it('should throw an error when stream ends unexpectedly in prefix', async function () {
+      sendChunks(['   3', '8'])
+      try { await responses.next() }
+      catch (err) {
+        assert(err.message.match(/Unexpected end of stream/i))
+        return
+      }
+      assert.fail('Failed to throw')
+    })
+
+    it('should throw an error when stream ends in JSON value', async function () {
+      sendChunks(['37{"quux":fal', 'se, "quuxx":{"foo":"ba'])
+      try { await responses.next() }
+      catch (err) {
+        assert(err.message.match(/Unexpected end of stream/i))
+        return
+      }
+      assert.fail('Failed to throw')
+    })
   })
 
   function sendChunks (chunks) {
@@ -115,8 +139,13 @@ describe('ResponseIterator', function () {
       function sendNext (chunks) {
         setImmediate(() => {
           inputStream.write(Buffer.from(chunks.shift()))
-          if (chunks.length) { sendNext(chunks) }
-          else { return resolve() }
+          if (chunks.length) {
+            sendNext(chunks)
+          }
+          else {
+            inputStream.end()
+            return resolve()
+          }
         })
       }
     })
