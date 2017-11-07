@@ -33,26 +33,26 @@ describe('JSONStreamIterator', function () {
     })
   })
 
-  describe('readValueFromStream()', function () {
+  describe('readNextValue()', function () {
     it('should call .next()', async function () {
       const expectation = sinon
         .mock(iterator)
         .expects('next')
         .once()
         .resolves({done:true})
-      await iterator.readValueFromStream()
+      await iterator.readNextValue()
       expectation.verify()
     })
 
     it('should return the value from .next() if not done', async function () {
       sinon.stub(iterator, 'next').resolves({ value: 'foo', done: false })
-      const result = await iterator.readValueFromStream()
+      const result = await iterator.readNextValue()
       assert.strictEqual(result, 'foo')
     })
 
     it('should return undefined if .next() returns done', async function () {
       sinon.stub(iterator, 'next').resolves({ done: true })
-      const result = await iterator.readValueFromStream()
+      const result = await iterator.readNextValue()
       assert.strictEqual(result, undefined)
     })
   })
