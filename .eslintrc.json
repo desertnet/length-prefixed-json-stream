@@ -7,14 +7,7 @@
   "extends": [
     "eslint:recommended"
   ],
-  "parserOptions": {
-    "ecmaVersion": 2017,
-    "ecmaFeatures": {
-      "experimentalObjectRestSpread": true,
-      "impliedStrict": true
-    },
-    "sourceType": "module"
-  },
+  "parser": "babel-eslint",
   "rules": {
     "semi": ["error", "never"],
     "no-tabs": [ "error" ],

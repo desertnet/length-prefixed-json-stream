@@ -26,7 +26,7 @@ export default class JSONStreamIterator {
   async next () {
     if (this.buffer === null) return { done: true }
 
-    const buf = await this._consumeToken(whitespace, true)
+    await this._consumeToken(whitespace, true)
     if (this.buffer === null) return { done: true }
 
     const size = Number.parseInt(await this._consumeToken(digits), 10)

@@ -22,6 +22,15 @@ describe('JSONStreamIterator', function () {
     it('should return `this`', function () {
       assert.strictEqual(iterator, iterator[Symbol.asyncIterator]())
     })
+
+    it('should work with for await…of', async function () {
+      sendChunks(['4"hi"7"world"'])
+      const vals = []
+      for await (const val of iterator) {
+        vals.push(val)
+      }
+      assert.deepStrictEqual(vals, ['hi', 'world'])
+    })
   })
 
   describe('readValueFromStream()', function () {
