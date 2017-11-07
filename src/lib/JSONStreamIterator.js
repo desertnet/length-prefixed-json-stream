@@ -87,7 +87,7 @@ export default class JSONStreamIterator {
 
   async readValueFromStream () {
     const item = await this.next()
-    if (item.done) return null
+    if (item.done) return undefined
     return item.value
   }
 }

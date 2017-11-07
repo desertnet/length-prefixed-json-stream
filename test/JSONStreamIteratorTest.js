@@ -50,10 +50,10 @@ describe('JSONStreamIterator', function () {
       assert.strictEqual(result, 'foo')
     })
 
-    it('should return null if .next() returns done', async function () {
+    it('should return undefined if .next() returns done', async function () {
       sinon.stub(iterator, 'next').resolves({ done: true })
       const result = await iterator.readValueFromStream()
-      assert.strictEqual(result, null)
+      assert.strictEqual(result, undefined)
     })
   })
 
