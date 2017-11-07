@@ -1,7 +1,7 @@
 import StreamPuller from './StreamPuller'
 import isStream from 'is-stream'
 
-const whitespace = makeCharCodeLookupTable([' ', '\r', '\n', '\t'])
+const whitespace = makeCharCodeLookupTable([' ', '\f', '\r', '\n', '\t'])
 const digits = makeCharCodeLookupTable('0 1 2 3 4 5 6 7 8 9'.split(/\s+/))
 
 export default class JSONStreamIterator {
